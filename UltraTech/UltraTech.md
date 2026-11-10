@@ -1,4 +1,4 @@
-# 🚀 TryHackMe — UltraTech
+# TryHackMe — UltraTech
 
 > **Writeup de CTF da plataforma TryHackMe.**
 > Documento com fins **exclusivamente educacionais**. Técnicas aplicadas em ambiente controlado e autorizado.
@@ -6,23 +6,7 @@
 
 ---
 
-## 📖 Sumário
-
-- [Visão Geral](#-visão-geral)
-- [Reconhecimento](#-reconhecimento)
-- [Enumeração da API (Porta 8081)](#-enumeração-da-api-porta-8081)
-- [Análise do Frontend](#-análise-do-frontend)
-- [Exploração da API](#-exploração-da-api)
-- [Quebra de Hash](#-quebra-de-hash)
-- [Tentativa de Login (FTP/SSH)](#-tentativa-de-login-ftpsh)
-- [Escalação de Privilégios](#-escalação-de-privilégios)
-- [Lições Aprendidas](#-lições-aprendidas)
-- [Ferramentas Utilizadas](#-ferramentas-utilizadas)
-- [Disclaimer](#️-disclaimer)
-
----
-
-## 🧭 Visão Geral
+##  Visão Geral
 
 | Campo | Valor |
 |:------|:------|
@@ -58,7 +42,7 @@ nmap ─▶ API 8081 (Node.js) ─▶ Command Injection (backticks)
 
 ---
 
-## 🔎 Reconhecimento
+##  Reconhecimento
 
 ### Varredura de portas
 
@@ -85,7 +69,7 @@ PORT     STATE SERVICE VERSION
 
 ---
 
-## 🌐 Enumeração da API (Porta 8081)
+##  Enumeração da API (Porta 8081)
 
 ### Fuzzing de rotas
 
@@ -106,7 +90,7 @@ ffuf -u http://<**.***.**.**>:8081/FUZZ \
 
 ---
 
-## 🖥 Análise do Frontend
+##  Análise do Frontend
 
 Na porta **31331**, o frontend Apache serve o site principal. Ao inspecionar os arquivos JavaScript (`/js/...`), observamos chamadas para os endpoints da API:
 
@@ -119,7 +103,7 @@ Isso confirma que o frontend consome a API na porta 8081, e que `/ping` é acess
 
 ---
 
-## 💥 Exploração da API
+##  Exploração da API
 
 ### 4.1 Erro revelador no `/ping`
 
@@ -154,9 +138,9 @@ curl "http://<**.***.**.**>:8081/ping?ip=`id`"
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ```
 
-✅ **Confirmação de Command Injection** — o servidor executou o comando `id` e retornou o output. O payload usou **substituição de comando** com backticks (`` ` ``), que é interpretado pelo shell antes de executar o comando principal.
+ **Confirmação de Command Injection** — o servidor executou o comando `id` e retornou o output. O payload usou **substituição de comando** com backticks (`` ` ``), que é interpretado pelo shell antes de executar o comando principal.
 
-> 💡 **Por que backticks funcionam aqui?** O código provavelmente faz algo como `exec("ping -c 1 " + ip)`. Quando `ip` contém `` `id` ``, o shell substitui `` `id` `` pelo output do comando e depois executa. É uma das técnicas mais clássicas de Command Injection.
+> **Por que backticks funcionam aqui?** O código provavelmente faz algo como `exec("ping -c 1 " + ip)`. Quando `ip` contém `` `id` ``, o shell substitui `` `id` `` pelo output do comando e depois executa. É uma das técnicas mais clássicas de Command Injection.
 
 ### 4.3 Listagem de arquivos
 
@@ -189,7 +173,7 @@ O banco continha **dois usuários e seus hashes**. O formato dos hashes (32 cara
 
 ---
 
-## 🔨 Quebra de Hash
+##  Quebra de Hash
 
 Os hashes encontrados eram **MD5** (rápidos de quebrar). Três abordagens possíveis:
 
@@ -224,7 +208,7 @@ admin →  <senha_encontrada>
 
 ---
 
-## 🔐 Tentativa de Login (FTP/SSH)
+## Tentativa de Login (FTP/SSH)
 
 Com as credenciais recuperadas, testamos os serviços expostos.
 
@@ -245,7 +229,7 @@ ssh r00t@10.66.156.242
 # senha: <senha_encontrada>
 ```
 
-✅ **Login SSH bem-sucedido** com o usuário `r00t`. Temos acesso inicial ao sistema.
+ **Login SSH bem-sucedido** com o usuário `r00t`. Temos acesso inicial ao sistema.
 
 ```text
 r00t@ultratech-prod:~$ id
@@ -256,7 +240,7 @@ uid=1001(r00t) gid=1001(r00t) groups=1001(r00t),116(docker)
 
 ---
 
-## 🚀 Escalação de Privilégios
+##  Escalação de Privilégios
 
 ### 7.1 Verificação de grupos
 
@@ -319,7 +303,7 @@ cat /hostOS/root/.ssh/id_rsa
 
 ---
 
-## 📚 Lições Aprendidas
+## Lições Aprendidas
 
 ### Vulnerabilidades exploradas
 
@@ -352,7 +336,7 @@ O daemon Docker roda como `root` e permite que qualquer membro do grupo `docker`
 
 ---
 
-## 🛠 Ferramentas Utilizadas
+##  Ferramentas Utilizadas
 
 | Ferramenta | Uso |
 |:--|:--|
@@ -366,21 +350,4 @@ O daemon Docker roda como `root` e permite que qualquer membro do grupo `docker`
 
 ---
 
-## ⚠️ Disclaimer
 
-Este writeup foi produzido **em ambiente controlado da plataforma TryHackMe**, com o único propósito de aprendizado e compartilhamento de conhecimento em segurança ofensiva. O uso dessas técnicas contra sistemas sem **autorização explícita** é ilegal e antiético.
-
-> **Nunca** realize testes de intrusão em sistemas que não sejam de sua propriedade ou para os quais você não tenha autorização escrita.
-> Em Portugal, o acesso ilegítimo a sistemas informáticos é crime previsto no artigo 6.º da Lei do Cibercrime (Lei n.º 109/2009).
-
----
-
-## 👤 Autor
-
-Feito com ☕ e curiosidade por **ERRO**  
-
----
-
-<div align="center">
-  <i>TryHackMe — UltraTech · Writeup</i><br/>
-</div>
